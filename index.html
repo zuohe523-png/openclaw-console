@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenClaw 控制台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2 {
+            font-size: 1.25rem;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-online {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-offline {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 12px;
+        }
+
+        .btn:last-child {
+            margin-bottom: 0;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-success {
+            background: #22c55e;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #16a34a;
+        }
+
+        .select-group {
+            margin-bottom: 20px;
+        }
+
+        .select-group label {
+            display: block;
+            color: #374151;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .select-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+            cursor: pointer;
+        }
+
+        .select-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .log-area {
+            width: 100%;
+            min-height: 150px;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            background: #f9fafb;
+            resize: vertical;
+            margin-bottom: 12px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            background: #f3f4f6;
+            padding: 12px 16px;
+            border-radius: 8px;
+        }
+
+        .info-item .label {
+            font-size: 0.75rem;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+
+        .info-item .value {
+            font-size: 1rem;
+            color: #111827;
+            font-weight: 500;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            background: #22c55e;
+        }
+
+        .toast.error {
+            background: #ef4444;
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 12px;
+            }
+
+            .card {
+                padding: 16px;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🦀 OpenClaw 控制台</h1>
+            <p>模型切换 · 网关管理 · 状态监控</p>
+        </div>
+
+        <div class="card">
+            <h2>
+                <span>⚡ 系统状态</span>
+                <span id="status-badge" class="status-badge status-online">在线</span>
+            </h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="label">当前模型</div>
+                    <div class="value" id="current-model">volcengine-plan/ark-code-latest</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">运行时间</div>
+                    <div class="value" id="uptime">00:00:00</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">系统版本</div>
+                    <div class="value" id="version">latest</div>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="refreshStatus()">刷新状态</button>
+        </div>
+
+        <div class="card">
+            <h2>🤖 模型切换</h2>
+            <div class="select-group">
+                <label for="model-select">选择模型</label>
+                <select id="model-select">
+                    <option value="volcengine-plan/ark-code-latest">火山引擎 - 代码模型 (默认)</option>
+                    <option value="volcengine-plan/ark-llama3-70b">火山引擎 - Llama3 70B</option>
+                    <option value="anthropic/claude-3-opus">Anthropic - Claude 3 Opus</option>
+                    <option value="anthropic/claude-3-sonnet">Anthropic - Claude 3 Sonnet</option>
+                    <option value="openai/gpt-4o">OpenAI - GPT-4o</option>
+                    <option value="openai/gpt-3.5-turbo">OpenAI - GPT-3.5 Turbo</option>
+                    <option value="google/gemini-1.5-pro">Google - Gemini 1.5 Pro</option>
+                </select>
+            </div>
+            <button class="btn btn-success" onclick="switchModel()">应用模型</button>
+        </div>
+
+        <div class="card">
+            <h2>🔧 网关管理</h2>
+            <button class="btn btn-primary" onclick="startGateway()">启动网关</button>
+            <button class="btn btn-primary" onclick="stopGateway()">停止网关</button>
+            <button class="btn btn-danger" onclick="restartGateway()">重启网关</button>
+            <button class="btn btn-primary" onclick="checkGatewayStatus()">查看网关状态</button>
+        </div>
+
+        <div class="card">
+            <h2>📋 操作日志</h2>
+            <textarea id="log-area" class="log-area" readonly placeholder="操作日志将显示在这里..."></textarea>
+            <button class="btn btn-primary" onclick="clearLogs()">清空日志</button>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // 模拟网关状态
+        let gatewayRunning = true;
+        let currentModel = "volcengine-plan/ark-code-latest";
+        let startTime = Date.now();
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            updateUptime();
+            setInterval(updateUptime, 1000);
+            document.getElementById('model-select').value = currentModel;
+            addLog("控制台已加载，准备就绪");
+        });
+
+        function updateUptime() {
+            const uptime = Math.floor((Date.now() - startTime) / 1000);
+            const hours = String(Math.floor(uptime / 3600)).padStart(2, '0');
+            const minutes = String(Math.floor((uptime % 3600) / 60)).padStart(2, '0');
+            const seconds = String(uptime % 60).padStart(2, '0');
+            document.getElementById('uptime').textContent = `${hours}:${minutes}:${seconds}`;
+        }
+
+        function refreshStatus() {
+            addLog("刷新系统状态...");
+            // 模拟请求
+            setTimeout(() => {
+                const statusBadge = document.getElementById('status-badge');
+                if (gatewayRunning) {
+                    statusBadge.className = 'status-badge status-online';
+                    statusBadge.textContent = '在线';
+                } else {
+                    statusBadge.className = 'status-badge status-offline';
+                    statusBadge.textContent = '离线';
+                }
+                document.getElementById('current-model').textContent = currentModel;
+                addLog("状态刷新完成");
+                showToast("状态已更新", "success");
+            }, 500);
+        }
+
+        function switchModel() {
+            const newModel = document.getElementById('model-select').value;
+            if (newModel === currentModel) {
+                showToast("模型未变更", "error");
+                return;
+            }
+
+            addLog(`正在切换模型: ${currentModel} → ${newModel}`);
+            
+            // 模拟请求
+            setTimeout(() => {
+                currentModel = newModel;
+                document.getElementById('current-model').textContent = currentModel;
+                addLog(`模型切换成功: ${currentModel}`);
+                showToast("模型切换成功", "success");
+            }, 1500);
+        }
+
+        function startGateway() {
+            if (gatewayRunning) {
+                showToast("网关已经在运行", "error");
+                return;
+            }
+
+            addLog("正在启动网关...");
+            setTimeout(() => {
+                gatewayRunning = true;
+                startTime = Date.now();
+                document.getElementById('status-badge').className = 'status-badge status-online';
+                document.getElementById('status-badge').textContent = '在线';
+                addLog("网关启动成功");
+                showToast("网关已启动", "success");
+            }, 2000);
+        }
+
+        function stopGateway() {
+            if (!gatewayRunning) {
+                showToast("网关已经停止", "error");
+                return;
+            }
+
+            addLog("正在停止网关...");
+            setTimeout(() => {
+                gatewayRunning = false;
+                document.getElementById('status-badge').className = 'status-badge status-offline';
+                document.getElementById('status-badge').textContent = '离线';
+                addLog("网关已停止");
+                showToast("网关已停止", "success");
+            }, 2000);
+        }
+
+        function restartGateway() {
+            addLog("正在重启网关...");
+            setTimeout(() => {
+                gatewayRunning = true;
+                startTime = Date.now();
+                document.getElementById('status-badge').className = 'status-badge status-online';
+                document.getElementById('status-badge').textContent = '在线';
+                addLog("网关重启成功");
+                showToast("网关重启成功", "success");
+            }, 3000);
+        }
+
+        function checkGatewayStatus() {
+            addLog("检查网关状态...");
+            setTimeout(() => {
+                if (gatewayRunning) {
+                    addLog("网关状态: 运行中");
+                    showToast("网关运行正常", "success");
+                } else {
+                    addLog("网关状态: 已停止");
+                    showToast("网关已停止", "error");
+                }
+            }, 1000);
+        }
+
+        function addLog(message) {
+            const logArea = document.getElementById('log-area');
+            const timestamp = new Date().toLocaleString('zh-CN');
+            logArea.value += `[${timestamp}] ${message}\n`;
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('log-area').value = '';
+            showToast("日志已清空", "success");
+        }
+
+        function showToast(message, type = "success") {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            
+            setTimeout(() => {
+                toast.className = 'toast';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
